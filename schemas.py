@@ -16,6 +16,10 @@ class NarrativePoint(BaseModel):
     name: str
     bullets: list[str]
 
+class SlideOverview(BaseModel):
+    name: str
+    description: str
+
 class DetailedSlideInputs(BaseModel):
     title: str
     data: list[str]

@@ -175,3 +175,136 @@ I don't know exactly which file to keep my judge signature in.
 Note: Ran `mlflow ui --host 127.0.0.1 --port 5000` to start the mlflow ui which is crucial for tracing. Heard great things about weave as well.
 
 Lets go write some pseudocode for what this actual flow will look like. [commit 3]
+
+We are going to put all of this into a dspy module -- the inputs would be a user prompt of some kind, but we are going to stub that out at first to just look at our example for phase 2-4.
+
+Our forward function should actually start from a prompt, but in this case it will start from presentation inputs and then at the end output a list of strings which are the react code for slides.
+
+Note: Rebase and squash the first 2 commits so that the numbers make sense
+
+```python
+mlflow.set_tracking_uri("http://127.0.0.1:5000")
+mlflow.set_experiment("slide_generator")
+mlflow.dspy.autolog()
+```
+
+I write those three lines of code a LOT
+
+Oops! I did a relative import wrong -- tbh never fully grokked that one.
+
+But okay nice! Our initial loading is working -- lets see what the first generations look like.
+
+NOTE: This is fun because its dogfooding -- as if I dont already use dspy enough; But still fun to try it on smaller projects.
+
+While writing pseudocode: remembered that I need to check to make sure that neither A nor B is favored by the judge.
+
+1.5 hours in!
+
+Cursor wrote this nice tournament_round function!
+# tournament_round = lambda variants: [pairwise_judge(a, b) for a, b in zip(variants[::2], variants[1::2])]
+
+Okee fat forward function pseudocode is written:
+```python
+def forward(presentation_inputs: PresentationInputs) -> list[str]:
+        # PresentationInputs -> NarrativePoints
+        # slides = NarrativePoints -> list[SlideOverview]
+        # completed slides = []
+        # for slide in slides:
+            # variants = []
+            # for temp in possible temps:
+                # SlideOverview -> DetailedSlideInputs
+                # is_satisfactory = false
+                # current_code = None
+                # feedback = None
+                # while not is_satisfactory:
+                #     DetailedSlideInputs, current_code, screenshot: dspy.Image, feedback -> revised_code
+                #     is_satisfactory = slide_judge(slide outline: Slide, screenshot: DSPy.Image -> is_satisfactory: bool, critique: str)
+            # tournament logic:
+                # will make sure to give myself a nice tournament number of variants per slide -- 8 or 16
+                # remaining_variants = variants
+                # while len(remaining_variants) > 0:
+                    # remaining_variants = tournament_round(remaining_variants)
+
+                    # tournament_round = lambda variants: [pairwise_judge(a, b) for a, b in zip(variants[::2], variants[1::2])]
+                    # pairwise_judge = ChainOfThought(screenshot_A: dspy.Image, screenshot_B: dspy.Image, preference: Literal["A", "B"])
+                # completed_slides.append(remaining_variants[0])
+
+        # compile everything as a single slide deck -- ill just collect the screenshots for now -- this is a great opporunity to vibe code a data viewer/labeler if I want going to do optimizer
+
+```
+
+
+Okay lets now go through this and sanity check each step.
+
+I defined all my signatures in the init for now -- I will probably move them to another file as I decide that it needs more detail/an actual task instruction rather than inferred from the parameter names, but this is still v0.
+
+Okay so now I am going to implement the first part of the forward function and then check it in mlflow.
+
+I could be making it up but I think I learned about rich from pair programming with wgussml like a year ago and ive been hooked recently.
+
+I made some changes to dspy a while ago to allow for finding more types, but I dont see anymore -- sad!
+
+This means that I have to write out full signatures tragically.
+
+Can just use AMP for this quick transofmration.
+
+Feeling like the boat racing guy rn -- im flying
+
+[insert gif]
+
+FUCK forgot to load an LM -- GG dspy skill issue
+
+Only an hour left!!
+
+Okay time to check MLFlow
+
+[insert screenshot of mlflow]
+
+Vibe check of narrative points look fine.
+
+Slide overviews maybe seem a little iffy -- could probably use more context; adding presentation inputs to see.
+
+These context lengths are long so its probably fine -- wondering if I need a shorter version of presentation inputs to pass as context for pretty much every call -- tbd.
+
+I do like these outputs a little better. I do think I did a bad job planning the relevant context for these generators.
+
+Good enough to try getting the e2e flow working without variants.
+
+Embarassingly i dont know the best way to set just the temperature in a call without setting all the parameters for a dspy.lm -- adding to utils.
+
+Not sure if I need to include presentation_inputs in the detailed slide generator -- i think so. Including so much context might affect the token distribution after or maybe like cement it into a certain part of token space; no idea.
+
+You could even argue that I should include previusly generated slides here; wont for now bc that lets me parallelize.
+
+The detailed slides look sane -- not in code yet.
+
+Time to ask ChatGPT how to get screenshots of react code.
+
+NOTE: What do I do if there is an error in the code? 
+
+I was wrong about needing e2b yet -- that would only be if I was deploying. I can just load it locally lol.
+
+ChatGPT says I can use esbuild. Will use AMP to implement this.
+
+[to insert prompts]
+
+> AMP prompt: Write a new python file that will take in some react code(as a string) and write the bundled version to a temp file, then load it with playwright in python and return a screenshot as a PIL image. Also write a demo piece of react code to test this util. This window should be 16:9.
+
+AMP did a decent job but is stuggling with dependencies -- it did:
+`uv run playwrite install chromium`
+
+It one shot it! Nice. That was way easier than I expected.
+
+>limit it to 16:9
+
+This is a little tricky -- I would want to add demos so the llm knows what level to abstract the code to (as in start with `function App`).
+
+Its totally possible 4.1 is smart enough to listen when you just say "write a react app that does this and start with function App and nothing else"
+
+I worry what will happen when the model does something wrong. I want it to be able to see the whole program in response so it can fix it.
+
+Lets just see for the first 10 how many it does correctly.
+
+Im running out of time! 25 minutes left.
+
+[commit 4]
