@@ -1,0 +1,84 @@
+{
+  "brand": {
+    "section": "Brand Identity",
+    "line_range": "9-31",
+    "logo_iconography": {
+      "primary_logo": "Puzzle-piece motif in red alongside the wordmark 'DSPy' in black on white",
+      "designer_credit": "Logo by Chuyi Zhang",
+      "usage_guidelines": "Always surround by ample whitespace; avoid treatments that distort or recolor the puzzle icon"
+    },
+    "color_palette": {
+      "dspy_red": {
+        "role": "Accent / Calls-to-action",
+        "hex": "#E03B3E"
+      },
+      "pure_black": {
+        "role": "Primary text / logo", 
+        "hex": "#000000"
+      },
+      "clean_white": {
+        "role": "Background",
+        "hex": "#FFFFFF"
+      },
+      "light_gray": {
+        "role": "Panels / code backgrounds",
+        "hex": "#F5F5F5"
+      }
+    },
+    "typography": {
+      "headings_ui": "Modern geometric sans-serif (e.g. Inter, SF Pro, or Studio Feixen Sans)",
+      "body_text": "Neutral sans-serif (e.g. Roboto, Helvetica Neue)",
+      "code_examples": "Monospaced (e.g. Courier New, Menlo), with light-gray background"
+    }
+  },
+  "tone": {
+    "section": "Tone & Voice",
+    "line_range": "34-58",
+    "core_attributes": {
+      "authoritative_precise": {
+        "description": "Explain concepts with clarity; assume readers understand AI fundamentals",
+        "example": "DSPy compiles your high-level modules into optimal prompts"
+      },
+      "approachable_collaborative": {
+        "description": "Write as though coaching a peer",
+        "example": "Let's build a RAG pipeline in three lines of code",
+        "style": "Use inclusive pronouns ('we,' 'you') and active voice"
+      },
+      "concise_action_oriented": {
+        "description": "Open docs with a TL;DR or 'Getting started' snippet",
+        "style": "Favor step-by-step instructions over long paragraphs"
+      }
+    },
+    "dos_donts": {
+      "do": [
+        "Configure your LM in a single line with `dspy.configure(...)`",
+        "Combine modules to build agents that self-improve",
+        "Use code examples liberally and highlight key parameters"
+      ],
+      "dont": [
+        "One might consider setting up the language model",
+        "Perhaps you could explore optimizing prompts later",
+        "Overload prose with extraneous theory or digressions"
+      ]
+    }
+  },
+  "voice": {
+    "section": "Imagery & Visual Language",
+    "line_range": "61-89",
+    "style": {
+      "diagrams_icons": "Line-art style, single-color (black or red) illustrations of pipelines, puzzle pieces, or flow-graphs",
+      "screenshots": "Always frame with a white border on a light-gray canvas",
+      "photography": "Abstract tech-backgrounds (circuit motifs, minimal workspaces) desaturated to grayscale; overlay with red highlights sparingly"
+    },
+    "application_examples": {
+      "website_docs": {
+        "banner_headline": "Programming – not prompting LMs",
+        "subhead": "DSPy is a declarative framework for building modular AI software…"
+      },
+      "social_marketing": {
+        "voice": "Confident, concise—'Unlock modular AI pipelines in Python'",
+        "visual": "Logo in DSPy Red on a black or white background; use minimal text overlays"
+      }
+    }
+  }
+}
