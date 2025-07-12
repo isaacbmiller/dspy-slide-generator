@@ -308,3 +308,61 @@ Lets just see for the first 10 how many it does correctly.
 Im running out of time! 25 minutes left.
 
 [commit 4]
+
+Going to write all the screenshots to a folder to see how many are blank. It probably needs access to our style guide.
+
+Just to see if it works, going to limit slides to 1 
+
+Wait it kinda did really good on the first attempt?? woah im impressed.
+
+![Initial Slide](initial_slide.png)
+
+15 MINUTES OKAY
+
+I kinda just want more heirarchy in the mlflow logs -- i dont actually need to move things into another module, but I might.
+
+Letting it rip on all the slides.
+
+Okay I lied making it into a module is good because then I can just call .batch on it.
+
+Cursor reefactored it real quick, lfg.
+
+LOWKEY ITS COOKING. So it is consistenly too small at first; I could beg the LLM to make the font bigger or just shrink the window a bit.
+
+Wait models are awesome, it got like 7/7 to compile off the rip.
+
+Its extremely possible to batch at the level of combining temperatures and slides.
+
+I want dont really want to flatten everything -- will keep slides at a higher level.
+
+> AMP prompt: Rewrite GenerateAndIterateSlides to take in the temperature and contain both of these steps in it:
+> detailed_slide_inputs = self.detailed_slide_generator(narrative_points=narrative_points, slide_overviews=slides, current_slide_overview=slide, presentation_inputs=presentation_inputs).detailed_slide_inputs
+> self.slide_code_generator(detailed_slide_inputs=detailed_slide_inputs)
+
+BEAUTIFUL -- 3 min left!
+
+Unforutnately example batch syntax SUCKS and I need to actually write `.with_inputs()`
+
+Just waiting for this run to finish, then wrapping up this first dev blog.
+
+A lot of these slides suffer from "Close but not quite there yet". Hoping that the judge model will be able to help us out with that.
+
+I be so lazy -- I asked amp to include the screenshots for me below.
+
+## Screenshots
+
+![Screenshot 0](temp_screenshots/0_the_problem__chaining_llms_without_direction_0.png)
+
+![Screenshot 1](temp_screenshots/1_introducing_dspy__a_principled_framework_0.png)
+
+![Screenshot 2](temp_screenshots/2_programming,_not_prompting__dspy's_approach_0.png)
+
+![Screenshot 3](temp_screenshots/3_llms_as_creative_engines—not_reasoners_0.png)
+
+![Screenshot 4](temp_screenshots/4_verifiable_feedback__anchoring_to_reality_0.png)
+
+![Screenshot 5](temp_screenshots/5_why_bet_on_dspy?_forward-thinking_and_evolving_0.png)
+
+![Screenshot 6](temp_screenshots/6_challenges_and_the_path_forward_0.png)
+
+![Screenshot 7](temp_screenshots/7_join_the_community_and_shape_the_future_0.png)

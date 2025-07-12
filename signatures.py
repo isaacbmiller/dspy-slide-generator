@@ -26,7 +26,9 @@ class DetailedSlideGenerator(dspy.Signature):
 
 
 class SlideCodeGenerator(dspy.Signature):
-    """Generate React code for slides based on detailed inputs. Start the code with exactly `function App() {`"""
+    """Generate React code for slides based on detailed inputs. 
+    The window is 1920x1080.
+    Start the code with exactly `function App() {`"""
     detailed_slide_inputs: DetailedSlideInputs = dspy.InputField()
     current_code: Optional[str] = dspy.InputField()
     screenshot: Optional[dspy.Image] = dspy.InputField()

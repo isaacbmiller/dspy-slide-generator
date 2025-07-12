@@ -7,25 +7,66 @@ import rich
 from utils import lm_with_temp
 from react_screenshot import react_to_screenshot
 
-def generate_and_iterate_slides(detailed_slide_inputs: DetailedSlideInputs, slide_code_generator: dspy.Module, max_iter: int):
-    iteration = 0
-    screenshot = None
-    feedback = None
-    current_code = None
-    while iteration < max_iter:
-        screenshot = react_to_screenshot(detailed_slide_inputs.react_code)
-        iteration += 1
-        if iteration > max_iter:
-            raise Exception("Max iterations reached")
-    pass
+# This needs to return a screenshot and thats it -- no code for now
+
+# SlideOverview -> DetailedSlideInputs
+# is_satisfactory = false
+# current_code = None
+# feedback = None
+# while not is_satisfactory:
+#     DetailedSlideInputs, current_code, screenshot: dspy.Image, feedback -> revised_code
+#     is_satisfactory = slide_judge(slide outline: Slide, screenshot: DSPy.Image -> is_satisfactory: bool, critique: str)
+class GenerateAndIterateSlides(dspy.Module):
+    def __init__(self, max_iter: int = 1):
+        super().__init__()
+        self.detailed_slide_generator = dspy.ChainOfThought(DetailedSlideGenerator)
+        self.slide_code_generator = dspy.ChainOfThought(SlideCodeGenerator)
+        self.max_iter = max_iter
+
+    def forward(self, narrative_points, slide_overviews, current_slide_overview, presentation_inputs, temperature=0.0):
+        with dspy.context(lm=lm_with_temp(temperature)):
+            detailed_slide_inputs = self.detailed_slide_generator(
+                narrative_points=narrative_points, 
+                slide_overviews=slide_overviews, 
+                current_slide_overview=current_slide_overview, 
+                presentation_inputs=presentation_inputs
+            ).detailed_slide_inputs
+
+        # Find the first matching member of slide_overviews that matches current_slide_overview
+        current_slide_number, current_slide_overview = next(
+            ((i, slide) for i, slide in enumerate(slide_overviews) if slide == current_slide_overview),
+            (None, None)
+        )
+            
+        iteration = 0
+        screenshot = None
+        feedback = None
+        current_code = None
+        while iteration < self.max_iter:
+            revised_code = self.slide_code_generator(
+                detailed_slide_inputs=detailed_slide_inputs,
+                current_code=current_code,
+                screenshot=screenshot,
+                feedback=feedback
+            ).revised_react_code
+            screenshot = react_to_screenshot(revised_code)
+
+            # temporarily save the screenshot
+            screenshot.save(f"temp_screenshots/{current_slide_number}_{detailed_slide_inputs.title.replace(' ', '_').replace(':', '_').lower()}_{iteration}.png")
+
+            iteration += 1
+            if iteration > self.max_iter:
+                raise Exception("Max iterations reached")
+        # Optionally, return the last screenshot or any other result as needed
+        return screenshot
 class SlideGenerator(dspy.Module):
     def __init__(self):
         self.narrative_generator = dspy.ChainOfThought(NarrativeGenerator)
         self.slide_generator = dspy.ChainOfThought(SlideOverviewGenerator)
-        self.detailed_slide_generator = dspy.ChainOfThought(DetailedSlideGenerator)
-        self.slide_code_generator = dspy.ChainOfThought(SlideCodeGenerator)
+        self.slide_code_generator = GenerateAndIterateSlides()
         self.slide_judge = dspy.ChainOfThought(SlideJudge)
         self.pairwise_judge = dspy.ChainOfThought(PairwiseJudge)
+
 
     def forward(self, presentation_inputs: PresentationInputs) -> list[str]:
         # PresentationInputs -> NarrativePoints
@@ -38,27 +79,17 @@ class SlideGenerator(dspy.Module):
         for slide in slides:
             # variants = []
             possible_temps = [0.0]
-            # will want to make this parallel
-            for temp in possible_temps:
-                with dspy.context(lm=lm_with_temp(temp)):
-                    
-                    detailed_slide_inputs = self.detailed_slide_generator(narrative_points=narrative_points, slide_overviews=slides, current_slide_overview=slide, presentation_inputs=presentation_inputs).detailed_slide_inputs
-
-
-# detailed_slide_inputs: DetailedSlideInputs = dspy.InputField()
-    # current_code: Optional[str] = dspy.InputField()
-    # screenshot: Optional[dspy.Image] = dspy.InputField()
-    # feedback: Optional[str] = dspy.InputField()
-    # revised_react_code: str = dspy.OutputField()
-                    
-
-                # SlideOverview -> DetailedSlideInputs
-                # is_satisfactory = false
-                # current_code = None
-                # feedback = None
-                # while not is_satisfactory:
-                #     DetailedSlideInputs, current_code, screenshot: dspy.Image, feedback -> revised_code
-                #     is_satisfactory = slide_judge(slide outline: Slide, screenshot: DSPy.Image -> is_satisfactory: bool, critique: str)
+            
+            self.slide_code_generator.batch(
+                dspy.Example(
+                    narrative_points=narrative_points,
+                    slide_overviews=slides,
+                    current_slide_overview=slide,
+                    presentation_inputs=presentation_inputs,
+                    temperature=temp
+                ).with_inputs("narrative_points", "slide_overviews", "current_slide_overview", "presentation_inputs", "temperature")
+                for temp in possible_temps
+            )
             # tournament logic:
                 # will make sure to give myself a nice tournament number of variants per slide -- 8 or 16
                 # remaining_variants = variants
