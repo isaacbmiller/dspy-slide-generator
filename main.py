@@ -6,6 +6,7 @@ import json
 import rich
 from utils import lm_with_temp
 from react_screenshot import react_to_screenshot
+import os
 
 # This needs to return a screenshot and thats it -- no code for now
 
@@ -17,11 +18,12 @@ from react_screenshot import react_to_screenshot
 #     DetailedSlideInputs, current_code, screenshot: dspy.Image, feedback -> revised_code
 #     is_satisfactory = slide_judge(slide outline: Slide, screenshot: DSPy.Image -> is_satisfactory: bool, critique: str)
 class GenerateAndIterateSlides(dspy.Module):
-    def __init__(self, max_iter: int = 1):
+    def __init__(self, max_iter: int = 1, output_dir: str = "outputs"):
         super().__init__()
         self.detailed_slide_generator = dspy.ChainOfThought(DetailedSlideGenerator)
         self.slide_code_generator = dspy.ChainOfThought(SlideCodeGenerator)
         self.max_iter = max_iter
+        self.output_dir = output_dir
 
     def forward(self, narrative_points, slide_overviews, current_slide_overview, presentation_inputs, temperature=0.0):
         with dspy.context(lm=lm_with_temp(temperature)):
@@ -52,7 +54,11 @@ class GenerateAndIterateSlides(dspy.Module):
             screenshot = react_to_screenshot(revised_code)
 
             # temporarily save the screenshot
-            screenshot.save(f"temp_screenshots/{current_slide_number}_{detailed_slide_inputs.title.replace(' ', '_').replace(':', '_').lower()}_{iteration}.png")
+            if not os.path.exists(self.output_dir):
+                os.makedirs(self.output_dir)
+            if not os.path.exists(f"{self.output_dir}/{temperature}"):
+                os.makedirs(f"{self.output_dir}/{temperature}")
+            screenshot.save(f"{self.output_dir}/{temperature}/{current_slide_number}_{detailed_slide_inputs.title.replace(' ', '_').replace(':', '_').lower()}_{iteration}.png")
 
             iteration += 1
             if iteration > self.max_iter:
@@ -103,26 +109,42 @@ class SlideGenerator(dspy.Module):
         # compile everything as a single slide deck -- ill just collect the screenshots for now -- this is a great opporunity to vibe code a data viewer/labeler if I want going to do optimizer
 
 # This should be generated
-with open("why_i_bet_on_dspy.md", "r") as f:
+with open("blog.md", "r") as f:
     blog_markdown = f.read()
+
+with open("why_i_bet_on_dspy.md", "r") as f:
+    why_i_bet_on_dspy = f.read()
 
 with open("dspy_brand_structure.json", "r") as f:
     brand_guidelines = json.load(f)
     brand_guidelines = BrandGuidelines(**brand_guidelines)
 
-mock_presentation_inputs = PresentationInputs(
-    user_goal="Generate a slide deck that informs the audience of the core function of dspy as a way to solve problems with compound LLM systems.",
-    user_intent="Persuade the audience in order to understand the value of DSPy as a forward thinking framework",
-    relevant_data=blog_markdown, # load from why_i_bet_on_dspy.md
-    brand_guidelines=brand_guidelines # Load from dspy_brand_structure.json
-)
+why_i_bet_on_dspy_data = {
+    "user_goal": "Generate a slide deck that informs the audience of the core function of dspy as a way to solve problems with compound LLM systems.",
+    "user_intent": "Persuade the audience in order to understand the value of DSPy as a forward thinking framework",
+    "relevant_data": why_i_bet_on_dspy,
+    "brand_guidelines": brand_guidelines
+}
+
+blog_data = {
+    "user_goal": "Show the audience a cool implementation of a compound system built using dspy",
+    "user_intent": "Impress the audience with how easy it is to develop such a complex system",
+    "relevant_data": blog_markdown,
+    "brand_guidelines": brand_guidelines
+}
+
+
+mock_presentation_inputs = [PresentationInputs(
+    **example
+) for example in [why_i_bet_on_dspy_data, blog_data]]
+
 
 def main():
     slide_generator = SlideGenerator()
 
     # print(mock_presentation_inputs)
 
-    rich.print(slide_generator(mock_presentation_inputs))
+    rich.print(slide_generator(mock_presentation_inputs[1]))
 
 
 

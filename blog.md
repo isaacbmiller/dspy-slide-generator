@@ -1,12 +1,16 @@
-## DSPy Dev Blog -- Recreating Ramp slide builder in DSPy
+# DSPy Dev Blog -- Recreating Ramp slide builder in DSPy
 
-Its Friday July 11 at 8:05. I am going to give myself three hours to recreate the slide generator from Alex from Ramp's [tocite] recent talk about context engineering. I am going to hard time limit to 3 hours and see how far I can get.
+**Friday July 11, 8:05 PM - The Challenge Begins**
 
-Ive don'e some thinking on the treadmill but really thats about it.
+Its Friday July 11 at 8:05. I am going to give myself three hours to recreate the slide generator from [Alex Shevchenko  from Ramp's](https://x.com/trychroma/status/1943461068820685110) recent talk about context engineering. I am going to hard time limit to 3 hours and see how far I can get.
+
+Ive done some thinking on the treadmill but really thats about it.
 
 Lets get started. [commit 1]
 
-His talk is here: https://youtu.be/KRMkR1n2Kfw?si=2eCoyK_dVJww9miu
+## 8:05-8:25 PM - Understanding the System
+
+His talk is here: [https://youtu.be/KRMkR1n2Kfw?si=2eCoyK_dVJww9miu](https://youtu.be/KRMkR1n2Kfw?si=2eCoyK_dVJww9miu)
 
 He breaks down the slide generator into 4 parts(quoted directly):
 
@@ -30,11 +34,8 @@ brand guidelines (pdf, powerpoint) -- colors, typography and layouts
 Has as inputs:
 
 1. User goal and intent
-
 2. Core data insights
-
 3. research findings
-
 4. brand tone and voice
 
 Comes up with a high level narrative arc
@@ -61,11 +62,11 @@ shows temperature in range(0.1, 0.9, 0.2), but thats only 5 variants -- its uncl
 
 I am just going to assume that the temperature is varied when generating the structured outline per slide, and then the implementation is back to temperature 0.1.
 
-## Planning time!
+## 8:25-8:45 PM - Planning Phase
 
 That took me 20 minutes woof.
 
-### Phase 1
+### My approach to Phase 1
 
 What is the system that I want to design?
 
@@ -79,6 +80,7 @@ UGH okay I will just hard code a single example of the structured inputs because
 
 Okay copied in my blog from before. Going to ask claude to write the brand guidelines now. JK i used o4-mini -- got a markdown file output -- now using AMP to convert it into json
 
+**Brand Guidelines Setup:**
 Prompt:
 > Look into dspy the framework (dspy.ai and on github) and generate brand, tone, and voice guidelines from that. Include image, color, font/typography references if helpful.
 
@@ -87,6 +89,8 @@ AMP prompt:
 
 Okay dspy_brand_structure.json looks fine enough for now.
 
+**Hardcoded inputs for v0:**
+
 Ill also hard code the user intent and goal:
 
 Intent: Persuade the audience in order to understand the value of DSPy as a forward thinking framework
@@ -94,7 +98,7 @@ Goal: Generate a slide deck that informs the audience of the core function of ds
 
 Research findings I will hardcode to just include the "Why I bet on DSPy blog.md"
 
-### Phase 2
+### Schema Design
 
 Coming up with a high level narrative arc actually seems not that hard.
 
@@ -110,7 +114,7 @@ Gave me decent options but I would want something more general to encompass all 
 tldr:
 list[dict[name: str, bullets: list[str]]]
 
-### Phase 3
+**Phase 3 Schema:**
 
 Title, data, visual, layout, tone
 
@@ -127,7 +131,7 @@ Maybe not because it will be grounded in the provided research.
 
 I guess this is where I need to start generating variants per slide? Will need to verify that the variants look different when I get to that point.
 
-### Phase 4
+**Phase 4 Planning:**
 
 This phase makes more sense at temp 0 or 0.1, so I think it has to be the previous one by process of elimination.
 
@@ -154,7 +158,9 @@ Tournament part is fairly straight forward. I can pass in the final screenshots 
 Okay I feel good lets get actually coding.
 [commit 2]
 
-## Wahoo Implementation time
+## 8:45 PM-10:00 PM - Implementation Sprint
+
+**Wahoo Implementation time**
 
 First step is setting up my first example.
 
@@ -162,6 +168,7 @@ Decided to make a schemas.py file. also installed dspy and mlflow using uv (obvi
 
 I was going to make a "HighLevelNarrativeArc" class which wraps a list of NarrativePoints, but this seems unnecessary. I will just use a list of NarrativePoints directly.
 
+**Schema Classes:**
 Okay We have our 4 main classes:
 - BrandGuidelines
 - PresentationInputs
@@ -172,6 +179,7 @@ Then we have some signatures to write which do transformations between these cla
 
 I don't know exactly which file to keep my judge signature in.
 
+**MLflow Setup:**
 Note: Ran `mlflow ui --host 127.0.0.1 --port 5000` to start the mlflow ui which is crucial for tracing. Heard great things about weave as well.
 
 Lets go write some pseudocode for what this actual flow will look like. [commit 3]
@@ -198,11 +206,12 @@ NOTE: This is fun because its dogfooding -- as if I dont already use dspy enough
 
 While writing pseudocode: remembered that I need to check to make sure that neither A nor B is favored by the judge.
 
-1.5 hours in!
+**1.5 hours in!**
 
 Cursor wrote this nice tournament_round function!
 # tournament_round = lambda variants: [pairwise_judge(a, b) for a, b in zip(variants[::2], variants[1::2])]
 
+**Pseudocode Architecture:**
 Okee fat forward function pseudocode is written:
 ```python
 def forward(presentation_inputs: PresentationInputs) -> list[str]:
@@ -233,6 +242,7 @@ def forward(presentation_inputs: PresentationInputs) -> list[str]:
 
 ```
 
+**Implementation Reality Check:**
 
 Okay lets now go through this and sanity check each step.
 
@@ -252,9 +262,12 @@ Feeling like the boat racing guy rn -- im flying
 
 [insert gif]
 
+**Classic DSPy Mistake:**
 FUCK forgot to load an LM -- GG dspy skill issue
 
-Only an hour left!!
+**Only an hour left!!**
+
+## 10:00-10:45 PM - First Results & React Screenshot Pipeline
 
 Okay time to check MLFlow
 
@@ -270,6 +283,7 @@ I do like these outputs a little better. I do think I did a bad job planning the
 
 Good enough to try getting the e2e flow working without variants.
 
+**Temperature Struggles:**
 Embarassingly i dont know the best way to set just the temperature in a call without setting all the parameters for a dspy.lm -- adding to utils.
 
 Not sure if I need to include presentation_inputs in the detailed slide generator -- i think so. Including so much context might affect the token distribution after or maybe like cement it into a certain part of token space; no idea.
@@ -278,6 +292,7 @@ You could even argue that I should include previusly generated slides here; wont
 
 The detailed slides look sane -- not in code yet.
 
+**React Screenshot Setup:**
 Time to ask ChatGPT how to get screenshots of react code.
 
 NOTE: What do I do if there is an error in the code? 
@@ -285,8 +300,6 @@ NOTE: What do I do if there is an error in the code?
 I was wrong about needing e2b yet -- that would only be if I was deploying. I can just load it locally lol.
 
 ChatGPT says I can use esbuild. Will use AMP to implement this.
-
-[to insert prompts]
 
 > AMP prompt: Write a new python file that will take in some react code(as a string) and write the bundled version to a temp file, then load it with playwright in python and return a screenshot as a PIL image. Also write a demo piece of react code to test this util. This window should be 16:9.
 
@@ -305,6 +318,8 @@ I worry what will happen when the model does something wrong. I want it to be ab
 
 Lets just see for the first 10 how many it does correctly.
 
+## 10:45-11:05 PM - Final Sprint & Results
+
 Im running out of time! 25 minutes left.
 
 [commit 4]
@@ -313,11 +328,12 @@ Going to write all the screenshots to a folder to see how many are blank. It pro
 
 Just to see if it works, going to limit slides to 1 
 
+**First Success:**
 Wait it kinda did really good on the first attempt?? woah im impressed.
 
 ![Initial Slide](initial_slide.png)
 
-15 MINUTES OKAY
+**15 MINUTES OKAY**
 
 I kinda just want more heirarchy in the mlflow logs -- i dont actually need to move things into another module, but I might.
 
@@ -327,14 +343,16 @@ Okay I lied making it into a module is good because then I can just call .batch 
 
 Cursor reefactored it real quick, lfg.
 
+**The Models Are Cooking:**
 LOWKEY ITS COOKING. So it is consistenly too small at first; I could beg the LLM to make the font bigger or just shrink the window a bit.
 
 Wait models are awesome, it got like 7/7 to compile off the rip.
 
 Its extremely possible to batch at the level of combining temperatures and slides.
 
-I want dont really want to flatten everything -- will keep slides at a higher level.
+I dont really want to flatten everything -- will keep slides at a higher level.
 
+**Final Optimization:**
 > AMP prompt: Rewrite GenerateAndIterateSlides to take in the temperature and contain both of these steps in it:
 > detailed_slide_inputs = self.detailed_slide_generator(narrative_points=narrative_points, slide_overviews=slides, current_slide_overview=slide, presentation_inputs=presentation_inputs).detailed_slide_inputs
 > self.slide_code_generator(detailed_slide_inputs=detailed_slide_inputs)
@@ -347,7 +365,23 @@ Just waiting for this run to finish, then wrapping up this first dev blog.
 
 A lot of these slides suffer from "Close but not quite there yet". Hoping that the judge model will be able to help us out with that.
 
-I be so lazy -- I asked amp to include the screenshots for me below.
+I am so lazy -- I asked amp to include the screenshots for me below. Also asked amp to add some better formatting for this blog as a whole.
+
+## Final Results - What We Built in 3 Hours
+
+In 3 hours, we managed to:
+1. ✅ Break down the Ramp slide generator architecture
+2. ✅ Design schemas for the 4-phase pipeline  
+3. ✅ Implement narrative synthesis (Phase 2)
+4. ✅ Build slide spec generation (Phase 3)
+5. ✅ Create React code generation + screenshot pipeline (Phase 4)
+6. ✅ Generate 8 working slides from the DSPy content
+7. ❌ Tournament selection (ran out of time)
+8. ❌ Iterative refinement loop (ran out of time)
+
+**What's surprising:** The models handled React code generation way better than expected - 7/7 slides compiled and rendered properly. The slide content quality is pretty decent for a first pass.
+
+**What needs work:** The slides are consistently too small/low contrast, and we never got to the judge + tournament selection that would really make this shine. Deep research and CSV understanding are also huge parts of this pipeline that I totally ignored.
 
 ## Screenshots
 
