@@ -152,7 +152,26 @@ I can flesh out my judge by actually thinking through what the important feature
 Tournament part is fairly straight forward. I can pass in the final screenshots for A and B. I would use a stronger reasoning model here as a judge if I have a choice.
 
 Okay I feel good lets get actually coding.
+[commit 2]
 
 ## Wahoo Implementation time
 
-First step is setting up my first example
+First step is setting up my first example.
+
+Decided to make a schemas.py file. also installed dspy and mlflow using uv (obviously).
+
+I was going to make a "HighLevelNarrativeArc" class which wraps a list of NarrativePoints, but this seems unnecessary. I will just use a list of NarrativePoints directly.
+
+Okay We have our 4 main classes:
+- BrandGuidelines
+- PresentationInputs
+- NarrativePoint
+- DetailedSlideInputs
+
+Then we have some signatures to write which do transformations between these classes, and then also the judge and tournament logic.
+
+I don't know exactly which file to keep my judge signature in.
+
+Note: Ran `mlflow ui --host 127.0.0.1 --port 5000` to start the mlflow ui which is crucial for tracing. Heard great things about weave as well.
+
+Lets go write some pseudocode for what this actual flow will look like. [commit 3]
