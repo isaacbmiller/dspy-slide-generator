@@ -7,71 +7,16 @@ import rich
 from utils import lm_with_temp
 from react_screenshot import react_to_screenshot
 import os
-
-# This needs to return a screenshot and thats it -- no code for now
-
-# SlideOverview -> DetailedSlideInputs
-# is_satisfactory = false
-# current_code = None
-# feedback = None
-# while not is_satisfactory:
-#     DetailedSlideInputs, current_code, screenshot: dspy.Image, feedback -> revised_code
-#     is_satisfactory = slide_judge(slide outline: Slide, screenshot: DSPy.Image -> is_satisfactory: bool, critique: str)
-class GenerateAndIterateSlides(dspy.Module):
-    def __init__(self, max_iter: int = 1, output_dir: str = "outputs"):
-        super().__init__()
-        self.detailed_slide_generator = dspy.ChainOfThought(DetailedSlideGenerator)
-        self.slide_code_generator = dspy.ChainOfThought(SlideCodeGenerator)
-        self.max_iter = max_iter
-        self.output_dir = output_dir
-
-    def forward(self, narrative_points, slide_overviews, current_slide_overview, presentation_inputs, temperature=0.0):
-        with dspy.context(lm=lm_with_temp(temperature)):
-            detailed_slide_inputs = self.detailed_slide_generator(
-                narrative_points=narrative_points, 
-                slide_overviews=slide_overviews, 
-                current_slide_overview=current_slide_overview, 
-                presentation_inputs=presentation_inputs
-            ).detailed_slide_inputs
-
-        # Find the first matching member of slide_overviews that matches current_slide_overview
-        current_slide_number, current_slide_overview = next(
-            ((i, slide) for i, slide in enumerate(slide_overviews) if slide == current_slide_overview),
-            (None, None)
-        )
-            
-        iteration = 0
-        screenshot = None
-        feedback = None
-        current_code = None
-        while iteration < self.max_iter:
-            revised_code = self.slide_code_generator(
-                detailed_slide_inputs=detailed_slide_inputs,
-                current_code=current_code,
-                screenshot=screenshot,
-                feedback=feedback
-            ).revised_react_code
-            screenshot = react_to_screenshot(revised_code)
-
-            # temporarily save the screenshot
-            if not os.path.exists(self.output_dir):
-                os.makedirs(self.output_dir)
-            if not os.path.exists(f"{self.output_dir}/{temperature}"):
-                os.makedirs(f"{self.output_dir}/{temperature}")
-            screenshot.save(f"{self.output_dir}/{temperature}/{current_slide_number}_{detailed_slide_inputs.title.replace(' ', '_').replace(':', '_').lower()}_{iteration}.png")
-
-            iteration += 1
-            if iteration > self.max_iter:
-                raise Exception("Max iterations reached")
-        # Optionally, return the last screenshot or any other result as needed
-        return screenshot
+import datetime
+from slide_generator import GenerateAndIterateSlides
+from slide_tournament import SlideTournament
 class SlideGenerator(dspy.Module):
-    def __init__(self):
+    def __init__(self, output_dir: str = "outputs"):
         self.narrative_generator = dspy.ChainOfThought(NarrativeGenerator)
         self.slide_generator = dspy.ChainOfThought(SlideOverviewGenerator)
-        self.slide_code_generator = GenerateAndIterateSlides()
-        self.slide_judge = dspy.ChainOfThought(SlideJudge)
-        self.pairwise_judge = dspy.ChainOfThought(PairwiseJudge)
+        self.output_dir = output_dir
+        self.slide_code_generator = GenerateAndIterateSlides(max_iter=3, output_dir=output_dir)
+        self.slide_tournament = SlideTournament()
 
 
     def forward(self, presentation_inputs: PresentationInputs) -> list[str]:
@@ -82,34 +27,29 @@ class SlideGenerator(dspy.Module):
         slides: list[SlideOverview] = self.slide_generator(narrative_points=narrative_points, presentation_inputs=presentation_inputs).slides
         completed_slides = []
         # ignoring variants/tournament at first
-        for slide in slides:
+        for slide in slides[:1]:
             # variants = []
-            possible_temps = [0.0]
+            possible_temps = [0.0, 0.25, 0.5, 0.75]
             
-            self.slide_code_generator.batch(
-                dspy.Example(
+            slide_variants = self.slide_code_generator.batch(
+                [dspy.Example(
                     narrative_points=narrative_points,
                     slide_overviews=slides,
                     current_slide_overview=slide,
                     presentation_inputs=presentation_inputs,
                     temperature=temp
                 ).with_inputs("narrative_points", "slide_overviews", "current_slide_overview", "presentation_inputs", "temperature")
-                for temp in possible_temps
+                for temp in possible_temps],
+                num_threads=10,
+                max_errors=0
             )
-            # tournament logic:
-                # will make sure to give myself a nice tournament number of variants per slide -- 8 or 16
-                # remaining_variants = variants
-                # while len(remaining_variants) > 0:
-                    # remaining_variants = tournament_round(remaining_variants)
-
-                    # tournament_round = lambda variants: [pairwise_judge(a, b) for a, b in zip(variants[::2], variants[1::2])]
-                    # pairwise_judge = ChainOfThought(screenshot_A: dspy.Image, screenshot_B: dspy.Image, preference: Literal["A", "B"])
-                # completed_slides.append(remaining_variants[0])
+            winning_slide = self.slide_tournament(slides=slide_variants)
+            rich.print(winning_slide)
 
         # compile everything as a single slide deck -- ill just collect the screenshots for now -- this is a great opporunity to vibe code a data viewer/labeler if I want going to do optimizer
 
 # This should be generated
-with open("blog.md", "r") as f:
+with open("blog_1.md", "r") as f:
     blog_markdown = f.read()
 
 with open("why_i_bet_on_dspy.md", "r") as f:
@@ -140,11 +80,13 @@ mock_presentation_inputs = [PresentationInputs(
 
 
 def main():
-    slide_generator = SlideGenerator()
+    output_dir = "outputs/{}".format(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
+    os.makedirs(output_dir, exist_ok=True)
+    slide_generator = SlideGenerator(output_dir=output_dir)
 
     # print(mock_presentation_inputs)
 
-    rich.print(slide_generator(mock_presentation_inputs[1]))
+    slide_generator(mock_presentation_inputs[0])
 
 
 
