@@ -75,11 +75,11 @@ class GenerateAndIterateSlides(dspy.Module):
 
 
 class SlideGenerator(dspy.Module):
-    def __init__(self, output_dir: str = "outputs"):
+    def __init__(self, output_dir: str = "outputs", max_iter: int = 3):
         self.narrative_generator = dspy.ChainOfThought(NarrativeGenerator)
         self.slide_generator = dspy.ChainOfThought(SlideOverviewGenerator)
         self.output_dir = output_dir
-        self.slide_code_generator = GenerateAndIterateSlides(max_iter=3, output_dir=output_dir)
+        self.slide_code_generator = GenerateAndIterateSlides(max_iter=max_iter, output_dir=output_dir)
         self.slide_tournament = SlideTournament()
 
 

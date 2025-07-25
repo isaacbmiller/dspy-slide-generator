@@ -5,6 +5,7 @@ import json
 import os
 import datetime
 from src.modules.slide_generator import SlideGenerator
+from src.utils.utils import enable_mlflow
 
 
 # This should be generated
@@ -41,7 +42,7 @@ mock_presentation_inputs = [PresentationInputs(
 def main():
     output_dir = "outputs/{}".format(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"))
     os.makedirs(output_dir, exist_ok=True)
-    slide_generator = SlideGenerator(output_dir=output_dir)
+    slide_generator = SlideGenerator(output_dir=output_dir, max_iter=3)
 
     # print(mock_presentation_inputs)
 
@@ -52,9 +53,7 @@ def main():
 if __name__ == "__main__":
 
 
-    mlflow.set_tracking_uri("http://127.0.0.1:5000")
-    mlflow.set_experiment("slide_generator")
-    mlflow.dspy.autolog()
+    enable_mlflow()
 
     dspy.configure(lm=dspy.LM("gpt-4.1"))
     main()
