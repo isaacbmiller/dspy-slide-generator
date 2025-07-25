@@ -1,43 +1,15 @@
 import logging
 import dspy
 import os
-from react_screenshot import react_to_screenshot
-from schemas import DetailedSlideInputs, PresentationInputs, Slide, SlideOverview, NarrativePoint
+from src.utils.react_screenshot import react_to_screenshot
+from src.schemas.schemas import DetailedSlideInputs, PresentationInputs, Slide, SlideOverview, NarrativePoint
+from src.schemas.signatures import DetailedSlideGenerator, SlideCodeGenerator, SlideJudge
 from typing import Optional
-from utils import lm_with_temp, to_PIL_image, clean_slide_name
+from src.utils.utils import lm_with_temp, to_PIL_image, clean_slide_name
 
 
-logger = logging.getLogger(__name__) # __name__ gives a unique name based on the module
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-class DetailedSlideGenerator(dspy.Signature):
-    """Generate detailed slide inputs from the current slide overview"""
-    presentation_inputs: PresentationInputs = dspy.InputField()
-    narrative_points: list[NarrativePoint] = dspy.InputField()
-    slide_overviews: list[SlideOverview] = dspy.InputField()
-    current_slide_overview: SlideOverview = dspy.InputField()
-    detailed_slide_inputs: DetailedSlideInputs = dspy.OutputField()
-
-
-class SlideCodeGenerator(dspy.Signature):
-    """Generate React code for slides based on detailed inputs. 
-    The window is 1920x1080.
-    Start the code with exactly `function App() {`"""
-    detailed_slide_inputs: DetailedSlideInputs = dspy.InputField()
-    current_slide: Slide = dspy.InputField()
-    feedback: Optional[str] = dspy.InputField()
-    revised_react_code: str = dspy.OutputField()
-
-
-class SlideJudge(dspy.Signature):
-    """Judge if a slide is a high quality slide matching the overview based on outline and screenshot
-    Slides should be visibly appealing, well formatted, and easy to understand.
-    You should be a harsh judge with high quality standards, ensuring that no misaligned text or figures are present.
-    The entire canvas should be used up.
-    """
-    slide_overview: SlideOverview = dspy.InputField()
-    slide: Slide = dspy.InputField()
-    is_satisfactory: bool = dspy.OutputField()
-    feedback: str = dspy.OutputField()
 
 class GenerateAndIterateSlides(dspy.Module):
     def __init__(self, max_iter: int = 1, output_dir: str = "outputs"):
@@ -100,3 +72,42 @@ class GenerateAndIterateSlides(dspy.Module):
         slide.filename = f"{self.output_dir}/slide_{current_slide_number}/{temperature}_{iteration}_{slide_name}.png"
 
         return slide
+
+
+class SlideGenerator(dspy.Module):
+    def __init__(self, output_dir: str = "outputs"):
+        self.narrative_generator = dspy.ChainOfThought(NarrativeGenerator)
+        self.slide_generator = dspy.ChainOfThought(SlideOverviewGenerator)
+        self.output_dir = output_dir
+        self.slide_code_generator = GenerateAndIterateSlides(max_iter=3, output_dir=output_dir)
+        self.slide_tournament = SlideTournament()
+
+
+    def forward(self, presentation_inputs: PresentationInputs) -> list[str]:
+        # PresentationInputs -> NarrativePoints
+        narrative_points = self.narrative_generator(presentation_inputs=presentation_inputs).narrative_points
+
+        # slides = NarrativePoints -> list[SlideOverview]
+        slides: list[SlideOverview] = self.slide_generator(narrative_points=narrative_points, presentation_inputs=presentation_inputs).slides
+        completed_slides = []
+        # ignoring variants/tournament at first
+        for slide in slides[:1]:
+            # variants = []
+            possible_temps = [0.0, 0.25, 0.5, 0.75]
+            
+            slide_variants = self.slide_code_generator.batch(
+                [dspy.Example(
+                    narrative_points=narrative_points,
+                    slide_overviews=slides,
+                    current_slide_overview=slide,
+                    presentation_inputs=presentation_inputs,
+                    temperature=temp
+                ).with_inputs("narrative_points", "slide_overviews", "current_slide_overview", "presentation_inputs", "temperature")
+                for temp in possible_temps],
+                num_threads=10,
+                max_errors=0
+            )
+            winning_slide = self.slide_tournament(slides=slide_variants)
+            rich.print(winning_slide)
+
+        # TODO: compile everything as a single slide deck -- ill just collect the screenshots for now -- this is a great opporunity to vibe code a data viewer/labeler if I want going to do optimizer

@@ -1,7 +1,7 @@
 import dspy
 import math
 from typing import Literal, List
-from schemas import Slide
+from src.schemas.schemas import Slide
 
 class PairwiseSlideJudge(dspy.Signature):
     """Compare two slides and provide preference with reasoning"""
