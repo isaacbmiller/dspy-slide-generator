@@ -1,5 +1,5 @@
-from pydantic import BaseModel, field_validator, PlainValidator
-from typing import Optional, Any, Annotated
+from pydantic import BaseModel, PlainValidator
+from typing import Optional, Annotated
 from PIL import Image
 import dspy
 class BrandGuidelines(BaseModel):

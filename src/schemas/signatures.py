@@ -1,6 +1,6 @@
 from src.schemas.schemas import DetailedSlideInputs, PresentationInputs, Slide, SlideOverview, NarrativePoint
 import dspy
-from typing import Optional, Literal
+from typing import Optional
 
 
 class NarrativeGenerator(dspy.Signature):

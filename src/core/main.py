@@ -1,15 +1,10 @@
 import dspy
-from src.schemas.schemas import PresentationInputs, SlideOverview, BrandGuidelines
-from src.schemas.signatures import NarrativeGenerator, SlideOverviewGenerator
+from src.schemas.schemas import PresentationInputs, BrandGuidelines
 import mlflow
 import json
-import rich
-from src.utils.utils import lm_with_temp
-from src.utils.react_screenshot import react_to_screenshot
 import os
 import datetime
-from src.modules.slide_generator import GenerateAndIterateSlides
-from src.modules.slide_tournament import SlideTournament
+from src.modules.slide_generator import SlideGenerator
 
 
 # This should be generated

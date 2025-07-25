@@ -1,9 +1,9 @@
 import dspy
+import re
 
 def lm_with_temp(temperature: float = 0.0, model: str = "gpt-4.1"):
     return dspy.LM(model=model, temperature=temperature)
 
-import re
 
 def clean_slide_name(slide_name: str):
     # Replace any character that is not alphanumeric, dash, or underscore with underscore

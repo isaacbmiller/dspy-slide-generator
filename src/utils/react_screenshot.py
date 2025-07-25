@@ -1,6 +1,5 @@
 import tempfile
 import os
-from pathlib import Path
 from playwright.sync_api import sync_playwright
 from PIL import Image
 import io

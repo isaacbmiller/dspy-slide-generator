@@ -2,11 +2,11 @@ import logging
 import dspy
 import os
 from src.utils.react_screenshot import react_to_screenshot
-from src.schemas.schemas import DetailedSlideInputs, PresentationInputs, Slide, SlideOverview, NarrativePoint
-from src.schemas.signatures import DetailedSlideGenerator, SlideCodeGenerator, SlideJudge
-from typing import Optional
-from src.utils.utils import lm_with_temp, to_PIL_image, clean_slide_name
-
+from src.schemas.schemas import PresentationInputs, Slide, SlideOverview
+from src.schemas.signatures import DetailedSlideGenerator, SlideCodeGenerator, SlideJudge, NarrativeGenerator, SlideOverviewGenerator
+from src.modules.slide_tournament import SlideTournament
+from src.utils.utils import lm_with_temp, clean_slide_name
+import rich
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -89,7 +89,7 @@ class SlideGenerator(dspy.Module):
 
         # slides = NarrativePoints -> list[SlideOverview]
         slides: list[SlideOverview] = self.slide_generator(narrative_points=narrative_points, presentation_inputs=presentation_inputs).slides
-        completed_slides = []
+        # completed_slides = []
         # ignoring variants/tournament at first
         for slide in slides[:1]:
             # variants = []
