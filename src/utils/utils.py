@@ -65,8 +65,8 @@ def to_PIL_image(dspy_image):
         else:
             raise ValueError(f"Cannot resolve image source: {url}")
 
-def enable_mlflow(tracking_uri="http://127.0.0.1:5000"):
+def enable_mlflow(tracking_uri="http://127.0.0.1:5000", experiment_name="slide_generator"):
     import mlflow
     mlflow.set_tracking_uri(tracking_uri)
-    mlflow.set_experiment("slide_generator")
+    mlflow.set_experiment(experiment_name)
     mlflow.dspy.autolog()
